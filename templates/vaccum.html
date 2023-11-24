@@ -1,0 +1,64 @@
+<!-- vaccum_details.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product_name }} - Product Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body>
+    <h1>{{ product_name }}</h1>
+    
+    <div class="product-details">
+        <img src="{{ url_for('static', filename='images/vaccum.jpg') }}" alt="{{ product_name }}" style="max-width: 30%;">
+        <p>Product details and description go here.</p>
+    </div>
+
+    <!-- Display the current price tile -->
+    <div class="current-price-tile">
+        <h2>Lowest Price: {{ current_price }}</h2>
+    </div>
+
+    <!-- Display the Plotly line graph -->
+    <div id="line-graph"></div>
+    <script>
+        var lineGraphData = {{ line_graph|safe }};
+        Plotly.newPlot('line-graph', [lineGraphData]);
+    </script>
+
+    <!-- Display the Plotly bar graph -->
+    <div id="bar-graph"></div>
+    <script>
+        var barGraphData = {{ bar_graph|safe }};
+        Plotly.newPlot('bar-graph', [barGraphData]);
+    </script>
+
+    <!-- Display the future price predictions -->
+    <div class="future-predictions">
+        <h2>Future Price Predictions</h2>
+        {% if predicted_prices %}
+            <p>Predicted Prices:</p>
+            <ul>
+                {% for prediction in predicted_prices %}
+                    <li>${{ prediction }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Unable to make predictions</p>
+        {% endif %}
+    </div>
+
+    <!-- Display the prediction message -->
+    <div class="prediction-message">
+        <h3>Prediction Message: {{ prediction_message }}</h3>
+    </div>
+
+    <!-- Display the "Back to Home" button -->
+    <a href="/" class="home-button">Back to Home</a>
+</body>
+
+</html>
