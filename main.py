@@ -148,7 +148,7 @@ def train_linear_regression_model(timestamp_price_data):
         prices = [entry['price'] for entry in timestamp_price_data]
         timestamps = np.array(timestamps).reshape(-1, 1)
         prices = np.array(prices)
-        X_train, X_test, y_train, y_test = train_test_split(timestamps, prices, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(timestamps, prices, test_size=0.2, random_state=17)
         model = LinearRegression()
         model.fit(X_train, y_train)
         return model
@@ -193,7 +193,7 @@ def airpods():
     future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = "Wait" if future_predictions is not None and future_predictions[-1] > current_price else "Buy"
+    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
 
     return render_template(
         "airpods.html",
@@ -239,7 +239,7 @@ def doorbell():
     future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = "Wait" if future_predictions is not None and future_predictions[-1] > current_price else "Buy"
+    prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
 
     return render_template(
         "doorbell.html",
@@ -287,7 +287,7 @@ def electric_cooker():
     future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = "Wait" if future_predictions is not None and future_predictions[-1] > current_price else "Buy"
+    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
 
     return render_template(
         "electric_cooker.html",
@@ -336,7 +336,7 @@ def meta_quest_3():
     future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = "Wait" if future_predictions is not None and future_predictions[-1] > current_price else "Buy"
+    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
 
     return render_template(
         "meta_quest_3.html",
@@ -389,7 +389,7 @@ def vaccum():
     future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = "Wait" if future_predictions is not None and future_predictions[-1] > current_price else "Buy"
+    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
 
     return render_template(
         "vaccum.html",
