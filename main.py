@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 from datetime import datetime
 from datetime import datetime, timedelta 
+from sklearn.metrics import r2_score
 
 
 app = Flask(__name__)
@@ -124,17 +125,17 @@ def fetch_timestamp_price_data(product_id):
             # print("Executing query:", query, "with parameters:", params)
             cursor.execute(query, params)
             data = cursor.fetchall()
-            print("Fetched data:", data)
+            # print("Fetched data:", data)
             return data
     except mysql.connector.Error as err:
         print(f"Error fetching timestamp and price data: {err}")
         return None
 
 # Function to predict prices
-def predict_prices(model, future_timestamps):
+def predict_prices(model, future_timestamps,X_train):
     try:
         # Make predictions on the future timestamps
-        future_predictions = model.predict(np.array(future_timestamps).reshape(-1, 1))
+        future_predictions = model.predict(np.array(X_train).reshape(-1,1))
         return future_predictions.tolist() if future_predictions.size > 1 else [future_predictions.item()]
     except Exception as e:
         print(f"Error predicting prices: {e}")
@@ -151,7 +152,28 @@ def train_linear_regression_model(timestamp_price_data):
         X_train, X_test, y_train, y_test = train_test_split(timestamps, prices, test_size=0.2, random_state=17)
         model = LinearRegression()
         model.fit(X_train, y_train)
-        return model
+        # Model evaluation
+        # model evaluation for training set
+        y_train_predict = model.predict(X_train)
+        rmse = (np.sqrt(mean_squared_error(y_train, y_train_predict)))
+        r2 = r2_score(y_train, y_train_predict)
+
+        print("The model performance for training set")
+        print("--------------------------------------")
+        print('RMSE is {}'.format(rmse))
+        print('R2 score is {}'.format(r2))
+        print("\n")
+        # model evaluation for testing set
+        y_test_predict =model.predict(X_test)
+        rmse = (np.sqrt(mean_squared_error(y_test, y_test_predict)))
+        r2 = r2_score(y_test, y_test_predict)
+
+        print("The model performance for testing set")
+        print("--------------------------------------")
+        print('RMSE is {}'.format(rmse))
+        print('R2 score is {}'.format(r2))
+            
+        return model,X_train
     except Exception as e:
         print(f"Error training linear regression model: {e}")
         return None
@@ -171,7 +193,7 @@ def airpods():
     price_data_L_reg = fetch_timestamp_price_data(product_id) # For prediction
 
     # Print the structure of price_data
-    print("Price Data Structure:", price_data)
+    # print("Price Data Structure:", price_data)
 
     line_graph = generate_line_graph(price_data)
     line_graph_html = line_graph.to_html(full_html=False) if line_graph else None
@@ -187,10 +209,10 @@ def airpods():
     future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
 
     # Train linear regression model
-    model = train_linear_regression_model(price_data_L_reg)
+    model,X_train = train_linear_regression_model(price_data_L_reg)
 
     # Predict future prices
-    future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
+    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
     prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
@@ -233,11 +255,10 @@ def doorbell():
     future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
 
     # Train linear regression model
-    model = train_linear_regression_model(price_data_L_reg)
+    model,X_train = train_linear_regression_model(price_data_L_reg)
 
     # Predict future prices
-    future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
-
+    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
     # Determine whether to wait or buy based on predictions
     prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
 
@@ -281,10 +302,10 @@ def electric_cooker():
     future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
 
     # Train linear regression model
-    model = train_linear_regression_model(price_data_L_reg)
+    model,X_train = train_linear_regression_model(price_data_L_reg)
 
     # Predict future prices
-    future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
+    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
     prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
@@ -329,11 +350,11 @@ def meta_quest_3():
     # Generate future timestamps
     future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
 
-    # Train linear regression model
-    model = train_linear_regression_model(price_data_L_reg)
+   # Train linear regression model
+    model,X_train = train_linear_regression_model(price_data_L_reg)
 
     # Predict future prices
-    future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
+    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
     prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
@@ -382,11 +403,11 @@ def vaccum():
     # Generate future timestamps
     future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
 
-    # Train linear regression model
-    model = train_linear_regression_model(price_data_L_reg)
+   # Train linear regression model
+    model,X_train = train_linear_regression_model(price_data_L_reg)
 
     # Predict future prices
-    future_predictions = predict_prices(model, [timestamp.timestamp() for timestamp in future_timestamps])
+    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
     prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
