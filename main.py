@@ -149,8 +149,8 @@ def fetch_timestamp_price_data(product_id):
 def predict_prices(model, future_timestamps,X_train):
     try:
         # Make predictions on the future timestamps
-        future_predictions = model.predict(np.array(X_train).reshape(-1,1))
-        return [round(x,2) for x in future_predictions.tolist()] if future_predictions.size > 1 else [future_predictions.item()]
+        future_predictions = model.predict(np.array(future_timestamps).reshape(-1,1))
+        return [round(x,2) for x in future_predictions.tolist()[1:6]] if future_predictions.size > 1 else [future_predictions.item()]
 
     except Exception as e:
         print(f"Error predicting prices: {e}")
@@ -169,24 +169,24 @@ def train_linear_regression_model(timestamp_price_data):
         model.fit(X_train, y_train)
         # Model evaluation
         # model evaluation for training set
-        y_train_predict = model.predict(X_train)
-        rmse = (np.sqrt(mean_squared_error(y_train, y_train_predict)))
-        r2 = r2_score(y_train, y_train_predict)
+        # y_train_predict = model.predict(X_train)
+        # rmse = (np.sqrt(mean_squared_error(y_train, y_train_predict)))
+        # r2 = r2_score(y_train, y_train_predict)
 
-        print("The model performance for training set")
-        print("--------------------------------------")
-        print('RMSE is {}'.format(rmse))
-        print('R2 score is {}'.format(r2))
-        print("\n")
-        # model evaluation for testing set
-        y_test_predict =model.predict(X_test)
-        rmse = (np.sqrt(mean_squared_error(y_test, y_test_predict)))
-        r2 = r2_score(y_test, y_test_predict)
+        # print("The model performance for training set")
+        # print("--------------------------------------")
+        # print('RMSE is {}'.format(rmse))
+        # print('R2 score is {}'.format(r2))
+        # print("\n")
+        # # model evaluation for testing set
+        # y_test_predict =model.predict(X_test)
+        # rmse = (np.sqrt(mean_squared_error(y_test, y_test_predict)))
+        # r2 = r2_score(y_test, y_test_predict)
 
-        print("The model performance for testing set")
-        print("--------------------------------------")
-        print('RMSE is {}'.format(rmse))
-        print('R2 score is {}'.format(r2))
+        # print("The model performance for testing set")
+        # print("--------------------------------------")
+        # print('RMSE is {}'.format(rmse))
+        # print('R2 score is {}'.format(r2))
             
         return model,X_train
     except Exception as e:
