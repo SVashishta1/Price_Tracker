@@ -119,14 +119,28 @@ def generate_line_graph(price_data):
 def fetch_timestamp_price_data(product_id):
     try:
         with mysql.connector.connect(**db_config) as connection:
+            amz='amazon'
+            bb='bestbuy'
+            wal='walmart'
             cursor = connection.cursor(dictionary=True)
-            query = "SELECT DATE_FORMAT(scrape_date, '%Y-%m-%d %H:%i:%s') AS timestamp, price FROM products WHERE p_id = %(product_id)s"
-            params = {'product_id': product_id}
+            query = "SELECT DATE_FORMAT(scrape_date, '%Y-%m-%d %H:%i:%s') AS timestamp, price FROM products WHERE p_id = %(product_id)s AND website = %(website)s"
+            params_amz = {'product_id': product_id,'website': amz}
             # print("Executing query:", query, "with parameters:", params)
-            cursor.execute(query, params)
-            data = cursor.fetchall()
+            cursor.execute(query, params_amz)
+            data_amz = cursor.fetchall()
+            #=======================================================
+            params_bb = {'product_id': product_id,'website': bb}
+            # print("Executing query:", query, "with parameters:", params)
+            cursor.execute(query, params_bb)
+            data_bb = cursor.fetchall()
+            #=======================================================
+            params_wal = {'product_id': product_id,'website': wal}
+            # print("Executing query:", query, "with parameters:", params)
+            cursor.execute(query, params_wal)
+            data_wal = cursor.fetchall()
+
             # print("Fetched data:", data)
-            return data
+            return data_amz,data_bb,data_wal
     except mysql.connector.Error as err:
         print(f"Error fetching timestamp and price data: {err}")
         return None
@@ -191,7 +205,7 @@ def airpods():
     product_name = "AirPods"  # Replace with the actual product name
     current_price = fetch_current_price(product_id)
     price_data = fetch_price_data(product_id) # For Bar & Line Graphs
-    price_data_L_reg = fetch_timestamp_price_data(product_id) # For prediction
+    price_data_L_reg_a,price_data_L_reg_b,price_data_L_reg_w = fetch_timestamp_price_data(product_id) # For prediction
 
     # Print the structure of price_data
   #  print("Price Data Structure:", price_data)
@@ -203,20 +217,56 @@ def airpods():
     bar_graph = generate_bar_graph(price_data)
     bar_graph_html = bar_graph.to_html(full_html=False) if bar_graph else None
 
+#---------------amazon prediction----------------------------------------
     # Convert 'timestamp' values to datetime objects
-    date_objects = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg]
+    date_objects_a = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_a]
 
     # Generate future timestamps
-    future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
+    future_timestamps_a = [max(date_objects_a) + timedelta(days=i) for i in range(1, 6)]
 
     # Train linear regression model
-    model,X_train = train_linear_regression_model(price_data_L_reg)
+    model_a,X_train_a = train_linear_regression_model(price_data_L_reg_a)
 
     # Predict future prices
-    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
+    future_predictions_a = predict_prices(model_a, X_train_a,[timestamp.timestamp() for timestamp in future_timestamps_a])
+    print(future_predictions_a)
+    # Determine whether to wait or buy based on predictions
+    prediction_message_a = prediction_message_a = "Buy" if future_predictions_a is not None and np.min(future_predictions_a) > current_price else "Wait"
+
+#---------------best buy prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_b = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_b]
+
+    # Generate future timestamps
+    future_timestamps_b = [max(date_objects_b) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_b,X_train_b = train_linear_regression_model(price_data_L_reg_b)
+
+    # Predict future prices
+    future_predictions_b = predict_prices(model_b, X_train_b,[timestamp.timestamp() for timestamp in future_timestamps_b])
+    print(future_predictions_b)
+    # Determine whether to wait or buy based on predictions
+    prediction_message_b = prediction_message_b = "Buy" if future_predictions_b is not None and np.min(future_predictions_b) > current_price else "Wait"
+
+
+#---------------walmart prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_w = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_w]
+
+    # Generate future timestamps
+    future_timestamps_w = [max(date_objects_w) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_w,X_train_w = train_linear_regression_model(price_data_L_reg_w)
+
+    # Predict future prices
+    future_predictions_w = predict_prices(model_w, X_train_w,[timestamp.timestamp() for timestamp in future_timestamps_w])
+    print(future_predictions_w)
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
+    prediction_message_w = prediction_message_w = "Buy" if future_predictions_w is not None and np.min(future_predictions_w) > current_price else "Wait"
+
 
     return render_template(
         "airpods.html",
@@ -224,9 +274,15 @@ def airpods():
         current_price=current_price,
         line_graph=line_graph_html,
         bar_graph=bar_graph_html,
-        future_timestamps=future_timestamps,
-        predicted_prices=future_predictions,
-        prediction_message=prediction_message
+        future_timestamps_a=future_timestamps_a,
+        predicted_prices_a=future_predictions_a,
+        prediction_message_a=prediction_message_a,
+        future_timestamps_b=future_timestamps_b,
+        predicted_prices_b=future_predictions_b,
+        prediction_message_b=prediction_message_b,
+        future_timestamps_w=future_timestamps_w,
+        predicted_prices_w=future_predictions_w,
+        prediction_message_w=prediction_message_w
     )
 
 
@@ -237,10 +293,10 @@ def doorbell():
     product_name = "Security Camera"  # Replace with the actual product name
     current_price = fetch_current_price(product_id)
     price_data = fetch_price_data(product_id)
-    price_data_L_reg = fetch_timestamp_price_data(product_id)  # For prediction
+    price_data_L_reg_a,price_data_L_reg_b,price_data_L_reg_w = fetch_timestamp_price_data(product_id) # For prediction
 
     # Print the structure of price_data
-    print("Price Data Structure:", price_data)
+    #print("Price Data Structure:", price_data)
 
     line_graph = generate_line_graph(price_data)
     line_graph_html = line_graph.to_html(full_html=False) if line_graph else None
@@ -249,19 +305,55 @@ def doorbell():
     bar_graph = generate_bar_graph(price_data)
     bar_graph_html = bar_graph.to_html(full_html=False) if bar_graph else None
 
+    #---------------amazon prediction----------------------------------------
     # Convert 'timestamp' values to datetime objects
-    date_objects = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg]
+    date_objects_a = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_a]
 
     # Generate future timestamps
-    future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
+    future_timestamps_a = [max(date_objects_a) + timedelta(days=i) for i in range(1, 6)]
 
     # Train linear regression model
-    model,X_train = train_linear_regression_model(price_data_L_reg)
+    model_a,X_train_a = train_linear_regression_model(price_data_L_reg_a)
 
     # Predict future prices
-    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
+    future_predictions_a = predict_prices(model_a, X_train_a,[timestamp.timestamp() for timestamp in future_timestamps_a])
+    print(future_predictions_a)
     # Determine whether to wait or buy based on predictions
-    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
+    prediction_message_a = prediction_message_a = "Buy" if future_predictions_a is not None and np.min(future_predictions_a) > current_price else "Wait"
+
+#---------------best buy prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_b = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_b]
+
+    # Generate future timestamps
+    future_timestamps_b = [max(date_objects_b) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_b,X_train_b = train_linear_regression_model(price_data_L_reg_b)
+
+    # Predict future prices
+    future_predictions_b = predict_prices(model_b, X_train_b,[timestamp.timestamp() for timestamp in future_timestamps_b])
+    print(future_predictions_b)
+    # Determine whether to wait or buy based on predictions
+    prediction_message_b = prediction_message_b = "Buy" if future_predictions_b is not None and np.min(future_predictions_b) > current_price else "Wait"
+
+
+#---------------walmart prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_w = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_w]
+
+    # Generate future timestamps
+    future_timestamps_w = [max(date_objects_w) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_w,X_train_w = train_linear_regression_model(price_data_L_reg_w)
+
+    # Predict future prices
+    future_predictions_w = predict_prices(model_w, X_train_w,[timestamp.timestamp() for timestamp in future_timestamps_w])
+    print(future_predictions_w)
+
+    # Determine whether to wait or buy based on predictions
+    prediction_message_w = prediction_message_w = "Buy" if future_predictions_w is not None and np.min(future_predictions_w) > current_price else "Wait"
 
     return render_template(
         "doorbell.html",
@@ -269,9 +361,15 @@ def doorbell():
         current_price=current_price,
         line_graph=line_graph_html,
         bar_graph=bar_graph_html,
-        future_timestamps=future_timestamps,
-        predicted_prices=future_predictions,
-        prediction_message=prediction_message
+        future_timestamps_a=future_timestamps_a,
+        predicted_prices_a=future_predictions_a,
+        prediction_message_a=prediction_message_a,
+        future_timestamps_b=future_timestamps_b,
+        predicted_prices_b=future_predictions_b,
+        prediction_message_b=prediction_message_b,
+        future_timestamps_w=future_timestamps_w,
+        predicted_prices_w=future_predictions_w,
+        prediction_message_w=prediction_message_w
     )
 
 
@@ -284,10 +382,10 @@ def electric_cooker():
     product_name = "Electric Cooker"  # Replace with the actual product name
     current_price = fetch_current_price(product_id)
     price_data = fetch_price_data(product_id)
-    price_data_L_reg = fetch_timestamp_price_data(product_id)  # For prediction
+    price_data_L_reg_a,price_data_L_reg_b,price_data_L_reg_w = fetch_timestamp_price_data(product_id) # For prediction
 
     # Print the structure of price_data
-    print("Price Data Structure:", price_data)
+    #print("Price Data Structure:", price_data)
 
     line_graph = generate_line_graph(price_data)
     line_graph_html = line_graph.to_html(full_html=False) if line_graph else None
@@ -296,20 +394,55 @@ def electric_cooker():
     bar_graph = generate_bar_graph(price_data)
     bar_graph_html = bar_graph.to_html(full_html=False) if bar_graph else None
 
+    #---------------amazon prediction----------------------------------------
     # Convert 'timestamp' values to datetime objects
-    date_objects = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg]
+    date_objects_a = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_a]
 
     # Generate future timestamps
-    future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
+    future_timestamps_a = [max(date_objects_a) + timedelta(days=i) for i in range(1, 6)]
 
     # Train linear regression model
-    model,X_train = train_linear_regression_model(price_data_L_reg)
+    model_a,X_train_a = train_linear_regression_model(price_data_L_reg_a)
 
     # Predict future prices
-    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
+    future_predictions_a = predict_prices(model_a, X_train_a,[timestamp.timestamp() for timestamp in future_timestamps_a])
+    print(future_predictions_a)
+    # Determine whether to wait or buy based on predictions
+    prediction_message_a = prediction_message_a = "Buy" if future_predictions_a is not None and np.min(future_predictions_a) > current_price else "Wait"
+
+#---------------best buy prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_b = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_b]
+
+    # Generate future timestamps
+    future_timestamps_b = [max(date_objects_b) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_b,X_train_b = train_linear_regression_model(price_data_L_reg_b)
+
+    # Predict future prices
+    future_predictions_b = predict_prices(model_b, X_train_b,[timestamp.timestamp() for timestamp in future_timestamps_b])
+    print(future_predictions_b)
+    # Determine whether to wait or buy based on predictions
+    prediction_message_b = prediction_message_b = "Buy" if future_predictions_b is not None and np.min(future_predictions_b) > current_price else "Wait"
+
+
+#---------------walmart prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_w = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_w]
+
+    # Generate future timestamps
+    future_timestamps_w = [max(date_objects_w) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_w,X_train_w = train_linear_regression_model(price_data_L_reg_w)
+
+    # Predict future prices
+    future_predictions_w = predict_prices(model_w, X_train_w,[timestamp.timestamp() for timestamp in future_timestamps_w])
+    print(future_predictions_w)
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
+    prediction_message_w = prediction_message_w = "Buy" if future_predictions_w is not None and np.min(future_predictions_w) > current_price else "Wait"
 
     return render_template(
         "electric_cooker.html",
@@ -317,9 +450,15 @@ def electric_cooker():
         current_price=current_price,
         line_graph=line_graph_html,
         bar_graph=bar_graph_html,
-        future_timestamps=future_timestamps,
-        predicted_prices=future_predictions,
-        prediction_message=prediction_message
+        future_timestamps_a=future_timestamps_a,
+        predicted_prices_a=future_predictions_a,
+        prediction_message_a=prediction_message_a,
+        future_timestamps_b=future_timestamps_b,
+        predicted_prices_b=future_predictions_b,
+        prediction_message_b=prediction_message_b,
+        future_timestamps_w=future_timestamps_w,
+        predicted_prices_w=future_predictions_w,
+        prediction_message_w=prediction_message_w
     )
 
 
@@ -333,10 +472,10 @@ def meta_quest_3():
     product_name = "Meta Quest 3"  # Replace with the actual product name
     current_price = fetch_current_price(product_id)
     price_data = fetch_price_data(product_id)
-    price_data_L_reg = fetch_timestamp_price_data(product_id)  # For prediction
+    price_data_L_reg_a,price_data_L_reg_b,price_data_L_reg_w = fetch_timestamp_price_data(product_id) # For prediction
 
     # Print the structure of price_data
-    print("Price Data Structure:", price_data)
+    #print("Price Data Structure:", price_data)
 
     line_graph = generate_line_graph(price_data)
     line_graph_html = line_graph.to_html(full_html=False) if line_graph else None
@@ -345,20 +484,55 @@ def meta_quest_3():
     bar_graph = generate_bar_graph(price_data)
     bar_graph_html = bar_graph.to_html(full_html=False) if bar_graph else None
 
+    #---------------amazon prediction----------------------------------------
     # Convert 'timestamp' values to datetime objects
-    date_objects = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg]
+    date_objects_a = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_a]
 
     # Generate future timestamps
-    future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
+    future_timestamps_a = [max(date_objects_a) + timedelta(days=i) for i in range(1, 6)]
 
-   # Train linear regression model
-    model,X_train = train_linear_regression_model(price_data_L_reg)
+    # Train linear regression model
+    model_a,X_train_a = train_linear_regression_model(price_data_L_reg_a)
 
     # Predict future prices
-    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
+    future_predictions_a = predict_prices(model_a, X_train_a,[timestamp.timestamp() for timestamp in future_timestamps_a])
+    print(future_predictions_a)
+    # Determine whether to wait or buy based on predictions
+    prediction_message_a = prediction_message_a = "Buy" if future_predictions_a is not None and np.min(future_predictions_a) > current_price else "Wait"
+
+#---------------best buy prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_b = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_b]
+
+    # Generate future timestamps
+    future_timestamps_b = [max(date_objects_b) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_b,X_train_b = train_linear_regression_model(price_data_L_reg_b)
+
+    # Predict future prices
+    future_predictions_b = predict_prices(model_b, X_train_b,[timestamp.timestamp() for timestamp in future_timestamps_b])
+    print(future_predictions_b)
+    # Determine whether to wait or buy based on predictions
+    prediction_message_b = prediction_message_b = "Buy" if future_predictions_b is not None and np.min(future_predictions_b) > current_price else "Wait"
+
+
+#---------------walmart prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_w = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_w]
+
+    # Generate future timestamps
+    future_timestamps_w = [max(date_objects_w) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_w,X_train_w = train_linear_regression_model(price_data_L_reg_w)
+
+    # Predict future prices
+    future_predictions_w = predict_prices(model_w, X_train_w,[timestamp.timestamp() for timestamp in future_timestamps_w])
+    print(future_predictions_w)
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
+    prediction_message_w = prediction_message_w = "Buy" if future_predictions_w is not None and np.min(future_predictions_w) > current_price else "Wait"
 
     return render_template(
         "meta_quest_3.html",
@@ -366,9 +540,15 @@ def meta_quest_3():
         current_price=current_price,
         line_graph=line_graph_html,
         bar_graph=bar_graph_html,
-        future_timestamps=future_timestamps,
-        predicted_prices=future_predictions,
-        prediction_message=prediction_message
+        future_timestamps_a=future_timestamps_a,
+        predicted_prices_a=future_predictions_a,
+        prediction_message_a=prediction_message_a,
+        future_timestamps_b=future_timestamps_b,
+        predicted_prices_b=future_predictions_b,
+        prediction_message_b=prediction_message_b,
+        future_timestamps_w=future_timestamps_w,
+        predicted_prices_w=future_predictions_w,
+        prediction_message_w=prediction_message_w
     )
 
 
@@ -386,10 +566,10 @@ def vaccum():
     product_name = "Vacuum"  # Replace with the actual product name
     current_price = fetch_current_price(product_id)
     price_data = fetch_price_data(product_id)
-    price_data_L_reg = fetch_timestamp_price_data(product_id)  # For prediction
+    price_data_L_reg_a,price_data_L_reg_b,price_data_L_reg_w = fetch_timestamp_price_data(product_id) # For prediction
 
     # Print the structure of price_data
-    print("Price Data Structure:", price_data)
+    #print("Price Data Structure:", price_data)
 
     line_graph = generate_line_graph(price_data)
     line_graph_html = line_graph.to_html(full_html=False) if line_graph else None
@@ -398,20 +578,55 @@ def vaccum():
     bar_graph = generate_bar_graph(price_data)
     bar_graph_html = bar_graph.to_html(full_html=False) if bar_graph else None
 
+    #---------------amazon prediction----------------------------------------
     # Convert 'timestamp' values to datetime objects
-    date_objects = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg]
+    date_objects_a = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_a]
 
     # Generate future timestamps
-    future_timestamps = [max(date_objects) + timedelta(days=i) for i in range(1, 6)]
+    future_timestamps_a = [max(date_objects_a) + timedelta(days=i) for i in range(1, 6)]
 
-   # Train linear regression model
-    model,X_train = train_linear_regression_model(price_data_L_reg)
+    # Train linear regression model
+    model_a,X_train_a = train_linear_regression_model(price_data_L_reg_a)
 
     # Predict future prices
-    future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
+    future_predictions_a = predict_prices(model_a, X_train_a,[timestamp.timestamp() for timestamp in future_timestamps_a])
+    print(future_predictions_a)
+    # Determine whether to wait or buy based on predictions
+    prediction_message_a = prediction_message_a = "Buy" if future_predictions_a is not None and np.min(future_predictions_a) > current_price else "Wait"
+
+#---------------best buy prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_b = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_b]
+
+    # Generate future timestamps
+    future_timestamps_b = [max(date_objects_b) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_b,X_train_b = train_linear_regression_model(price_data_L_reg_b)
+
+    # Predict future prices
+    future_predictions_b = predict_prices(model_b, X_train_b,[timestamp.timestamp() for timestamp in future_timestamps_b])
+    print(future_predictions_b)
+    # Determine whether to wait or buy based on predictions
+    prediction_message_b = prediction_message_b = "Buy" if future_predictions_b is not None and np.min(future_predictions_b) > current_price else "Wait"
+
+
+#---------------walmart prediction----------------------------------------
+    # Convert 'timestamp' values to datetime objects
+    date_objects_w = [datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S') for entry in price_data_L_reg_w]
+
+    # Generate future timestamps
+    future_timestamps_w = [max(date_objects_w) + timedelta(days=i) for i in range(1, 6)]
+
+    # Train linear regression model
+    model_w,X_train_w = train_linear_regression_model(price_data_L_reg_w)
+
+    # Predict future prices
+    future_predictions_w = predict_prices(model_w, X_train_w,[timestamp.timestamp() for timestamp in future_timestamps_w])
+    print(future_predictions_w)
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
+    prediction_message_w = prediction_message_w = "Buy" if future_predictions_w is not None and np.min(future_predictions_w) > current_price else "Wait"
 
     return render_template(
         "vaccum.html",
@@ -419,9 +634,15 @@ def vaccum():
         current_price=current_price,
         line_graph=line_graph_html,
         bar_graph=bar_graph_html,
-        future_timestamps=future_timestamps,
-        predicted_prices=future_predictions,
-        prediction_message=prediction_message
+        future_timestamps_a=future_timestamps_a,
+        predicted_prices_a=future_predictions_a,
+        prediction_message_a=prediction_message_a,
+        future_timestamps_b=future_timestamps_b,
+        predicted_prices_b=future_predictions_b,
+        prediction_message_b=prediction_message_b,
+        future_timestamps_w=future_timestamps_w,
+        predicted_prices_w=future_predictions_w,
+        prediction_message_w=prediction_message_w
     )
 
 

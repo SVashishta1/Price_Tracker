@@ -39,11 +39,41 @@
 
     <!-- Display the future price predictions -->
     <div class="future-predictions">
-        <h2>Future Price Predictions</h2>
-        {% if predicted_prices %}
+        <h2>Future Price Predictions Amazon</h2>
+        {% if predicted_prices_a %}
             <p>Predicted Prices:</p>
             <ul>
-                {% for prediction in predicted_prices %}
+                {% for prediction in predicted_prices_a %}
+                    <li>${{ prediction }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Unable to make predictions</p>
+        {% endif %}
+    </div>
+
+    <!-- Display the future price predictions -->
+    <div class="future-predictions">
+        <h2>Future Price Predictions Best Buy</h2>
+        {% if predicted_prices_b %}
+            <p>Predicted Prices:</p>
+            <ul>
+                {% for prediction in predicted_prices_b %}
+                    <li>${{ prediction }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Unable to make predictions</p>
+        {% endif %}
+    </div>
+
+    <!-- Display the future price predictions -->
+    <div class="future-predictions">
+        <h2>Future Price Predictions Walmart</h2>
+        {% if predicted_prices_w %}
+            <p>Predicted Prices:</p>
+            <ul>
+                {% for prediction in predicted_prices_w %}
                     <li>${{ prediction }}</li>
                 {% endfor %}
             </ul>
@@ -53,9 +83,9 @@
     </div>
 
     <!-- Display the prediction message -->
-    <div class="prediction-message">
+    <!-- <div class="prediction-message">
         <h3>Prediction Message: {{ prediction_message }}</h3>
-    </div>
+    </div> -->
 
     <!-- Display the "Back to Home" button -->
     <a href="/" class="home-button">Back to Home</a>
