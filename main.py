@@ -136,7 +136,8 @@ def predict_prices(model, future_timestamps,X_train):
     try:
         # Make predictions on the future timestamps
         future_predictions = model.predict(np.array(X_train).reshape(-1,1))
-        return future_predictions.tolist() if future_predictions.size > 1 else [future_predictions.item()]
+        return [round(x,2) for x in future_predictions.tolist()] if future_predictions.size > 1 else [future_predictions.item()]
+
     except Exception as e:
         print(f"Error predicting prices: {e}")
         return None
@@ -193,7 +194,7 @@ def airpods():
     price_data_L_reg = fetch_timestamp_price_data(product_id) # For prediction
 
     # Print the structure of price_data
-    # print("Price Data Structure:", price_data)
+  #  print("Price Data Structure:", price_data)
 
     line_graph = generate_line_graph(price_data)
     line_graph_html = line_graph.to_html(full_html=False) if line_graph else None
@@ -215,7 +216,7 @@ def airpods():
     future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
+    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
 
     return render_template(
         "airpods.html",
@@ -260,7 +261,7 @@ def doorbell():
     # Predict future prices
     future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
     # Determine whether to wait or buy based on predictions
-    prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
+    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
 
     return render_template(
         "doorbell.html",
@@ -308,7 +309,7 @@ def electric_cooker():
     future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
+    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
 
     return render_template(
         "electric_cooker.html",
@@ -357,7 +358,7 @@ def meta_quest_3():
     future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
+    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
 
     return render_template(
         "meta_quest_3.html",
@@ -410,7 +411,7 @@ def vaccum():
     future_predictions = predict_prices(model, X_train,[timestamp.timestamp() for timestamp in future_timestamps])
 
     # Determine whether to wait or buy based on predictions
-    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.mean(future_predictions) > current_price else "Wait"
+    prediction_message = prediction_message = "Buy" if future_predictions is not None and np.min(future_predictions) > current_price else "Wait"
 
     return render_template(
         "vaccum.html",
